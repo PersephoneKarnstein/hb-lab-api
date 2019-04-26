@@ -46,7 +46,19 @@ def find_afterparties():
         # - (Make sure to save the JSON data from the response to the data
         #   variable so that it can display on the page as well.)
 
-        data = {'This': ['Some', 'mock', 'JSON']}
+
+        payload = {
+            'q' : query,
+            'location.address' : location,
+            'location.within' : distance,
+            'sort_by' : sort,
+            'token': os.environ["EVENTBRITE_TOKEN"]
+        }
+
+        url = 'https://www.eventbriteapi.com/v3/categories'
+        response = requests.get(url, params=payload)
+
+        data = response.json()
         events = []
 
         return render_template("afterparties.html",
@@ -72,7 +84,7 @@ def create_eventbrite_event():
 
     name = request.form.get('name')
     # The Eventbrite API requires the start & end times be in ISO8601 format
-    # in the UTC time standard. Adding ':00' at the end represents the seconds,
+    # in the UTC time standard. Adding ':00' at the end uprepresents the seconds,
     # and the 'Z' is the zone designator for the zero UTC offset.
     start_time = request.form.get('start-time') + ':00Z'
     end_time = request.form.get('end-time') + ':00Z'
@@ -85,13 +97,33 @@ def create_eventbrite_event():
     # form data and save the result in a variable called `json`.
     # - Flash add the created event's URL as a link to the success flash message
 
-    ##### UNCOMMENT THIS once you make your request! #####
-    # if response.ok:
-    #     flash("Your event was created!")
-    #     return redirect("/")
-    # else:
-    #     flash('OAuth failed: {}'.format(data['error_description']))
-    #     return redirect("/create-event")
+    payload = {
+        # 'name' : {"html": name},
+        # 'start' : {"timezone": timezone, "utc" : start_time},
+        # 'end' : {"timezone": timezone, "utc" : end_time},
+        # 'timezone' : timezone,
+        'event.start.utc' : start_time,
+        'currency' : currency
+        }
+
+    headers = {
+    "Authorization":"Bearer "+os.environ["EVENTBRITE_TOKEN"]
+    }
+
+    url = 'https://www.eventbriteapi.com/v3'
+    response = requests.post(url + f"/organizations/{os.environ['EVENTBRITE_USER_ID']}/events/",
+        data=payload,
+        headers=headers)
+
+    data = response.json()
+
+    #### UNCOMMENT THIS once you make your request! #####
+    if response.ok:
+        flash("Your event was created!")
+        return redirect("/")
+    else:
+        flash('OAuth failed: {}'.format(data['error_description']))
+        return redirect("/create-event")
 
     return redirect("/")
 
